@@ -1,0 +1,75 @@
+FUNCTION "TF_CTE_EXERC" ()
+RETURNS TABLE(
+    BPARTNER NVARCHAR(10),
+    TAXNUMBER NVARCHAR(20),
+    CAMPO_EVALUADO NVARCHAR(30),
+    FECHA NVARCHAR(8),
+    TIPO_UNION NVARCHAR(15)
+)
+LANGUAGE SQLSCRIPT
+SQL SECURITY INVOKER
+AS
+BEGIN
+    RETURN
+
+    WITH CTE_RESULTADO AS (
+        SELECT
+            BPARTNER,
+            TAXNUMBER,
+            'TAXNUMBER' AS CAMPO_EVALUADO,
+            CREATEDON AS FECHA
+        FROM TABLA
+        WHERE TAXNUMBER = ''
+        AND BPARTNER LIKE '00%'
+        AND BPARTNER NOT LIKE '000%'
+        AND "/BIC/ZBPTAXCAT" = 'CO1N'
+
+        UNION ALL
+
+        SELECT 
+            BPARTNER,
+            TAXNUMBER,
+            'TAXNUMBER' AS CAMPO_EVALUADO,
+            CH_ON AS FECHA
+        FROM TABLA
+        WHERE TAXNUMBER = ''
+        ),
+        CTE_RESULTADO2 AS(
+            SELECT 
+                BPARTNER,
+                TAXNUMBER,
+                'TAXNUMBER' AS CAMPO_EVALUADO,
+                CH_ON AS FECHA
+            FROM TABLA
+            WHERE TAXNUMBER = ''
+
+            UNION ALL
+
+            SELECT 
+                BPARTNER,
+                TAXNUMBER,
+                'TAXNUMBER' AS CAMPO_EVALUADO,
+                CH_ON AS FECHA
+            FROM TABLA
+            WHERE TAXNUMBER = ''
+        )
+
+        SELECT BPARTNER,
+                TAXNUMBER,
+                'TAXNUMBER' AS CAMPO_EVALUADO,
+                CH_ON AS FECHA,
+                'UNION' AS TIPO_UNION
+            FROM CTE_RESULTADO
+            GROUP BY BPARTNER
+
+        UNION ALL
+
+        SELECT BPARTNER,
+                TAXNUMBER,
+                'TAXNUMBER' AS CAMPO_EVALUADO,
+                CH_ON AS FECHA,
+                'UNICO' AS TIPO_UNION
+            FROM CTE_RESULTADO2
+            GROUP BY BPARTNER;
+
+END;
