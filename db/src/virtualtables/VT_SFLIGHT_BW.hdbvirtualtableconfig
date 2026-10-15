@@ -1,0 +1,10 @@
+{
+    "VT_SFLIGHT_BW" :{
+        "target" : {
+            "remote": "OnPrem_A4H_Flight",
+            "database" : "A4H",
+            "schema": "SAPHANADB",
+            "object": "SFLIGHT"
+        }
+    }
+}

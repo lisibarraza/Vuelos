@@ -1,0 +1,156 @@
+_schema-version: 3.3.0
+ID: Vuelos
+description: A simple CAP project.
+version: 1.0.0
+modules:
+- name: Vuelos-srv
+  type: nodejs
+  path: gen/srv
+  requires:
+  - name: Vuelos-db
+  - name: hdi_db
+  provides:
+  - name: srv-api
+    properties:
+      srv-url: ${default-url}
+  parameters:
+    buildpack: nodejs_buildpack
+    instances: 1
+  build-parameters:
+    builder: npm-ci
+- name: db
+  type: hdb
+  path: gen/db
+  requires:
+  - name: hdi_db
+    properties:
+      TARGET_CONTAINER: ~{hdi-container-name}
+  - name: cross-container-service-1
+    group: SERVICE_REPLACEMENTS
+    properties:
+      key: ServiceName_1
+      service: ~{the-service-name}
+  parameters:
+    buildpack: nodejs_buildpack
+- name: Vuelos-destination-content
+  type: com.sap.application.content
+  requires:
+  - name: Vuelos-destination-service
+    parameters:
+      content-target: true
+  - name: Vuelos_html_repo_host
+    parameters:
+      service-key:
+        name: Vuelos_html_repo_host-key
+  - name: uaa_Vuelos
+    parameters:
+      service-key:
+        name: uaa_Vuelos-key
+  parameters:
+    content:
+      instance:
+        destinations:
+        - Name: vuelosapprouter_Vuelos_html_repo_host
+          ServiceInstanceName: Vuelos-html5-app-host-service
+          ServiceKeyName: Vuelos_html_repo_host-key
+          sap.cloud.service: vuelosapprouter
+        - Authentication: OAuth2UserTokenExchange
+          Name: vuelosapprouter_uaa_Vuelos
+          ServiceInstanceName: Vuelos-xsuaa-service
+          ServiceKeyName: uaa_Vuelos-key
+          sap.cloud.service: vuelosapprouter
+        existing_destinations_policy: ignore
+  build-parameters:
+    no-source: true
+- name: Vuelos-app-content
+  type: com.sap.application.content
+  path: .
+  requires:
+  - name: Vuelos_html_repo_host
+    parameters:
+      content-target: true
+  build-parameters:
+    build-result: resources
+    requires:
+    - artifacts:
+      - customviewairport.zip
+      name: customviewairport
+      target-path: resources/
+    - artifacts:
+      - viewmapairports.zip
+      name: viewmapairports
+      target-path: resources/
+- name: customviewairport
+  type: html5
+  path: app/custom_view_airport
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+- name: viewmapairports
+  type: html5
+  path: app/view_map_airports
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+resources:
+- name: hdi_db
+  type: com.sap.xs.hdi-container
+  parameters:
+    service: hana
+    service-plan: hdi-shared
+  properties:
+    hdi-container-name: ${service-name}
+- name: cross-container-service-1
+  type: org.cloudfoundry.existing-service
+  parameters:
+    service-name: CROSS_NEW_SFLIGHT
+  properties:
+    the-service-name: ${service-name}
+- name: Vuelos-destination-service
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: true
+      init_data:
+        instance:
+          destinations:
+          - Authentication: NoAuthentication
+            Name: ui5
+            ProxyType: Internet
+            Type: HTTP
+            URL: https://ui5.sap.com
+          existing_destinations_policy: update
+      version: 1.0.0
+    service: destination
+    service-name: Vuelos-destination-service
+    service-plan: lite
+- name: Vuelos_html_repo_host
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-name: Vuelos-html5-app-host-service
+    service-plan: app-host
+- name: uaa_Vuelos
+  type: org.cloudfoundry.managed-service
+  parameters:
+    path: ./xs-security.json
+    service: xsuaa
+    service-name: Vuelos-xsuaa-service
+    service-plan: application
+parameters:
+  deploy_mode: html5-repo
+  enable-parallel-deployments: true
+build-parameters:
+  before-all:
+  - builder: custom
+    commands:
+    - npm ci
+    - npx cds build --production

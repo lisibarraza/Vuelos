@@ -1,0 +1,17 @@
+{
+    "role": {
+        "name": "ViewReader",
+        "object_privileges": [
+        {
+            "name": "CV_AGENCY_SALES",
+            "type": "VIEW",
+            "privileges": ["SELECT"]
+        },
+        {
+            "name": "CV_AGENCY_MAP",
+            "type": "VIEW",
+            "privileges": ["SELECT"]
+        }
+        ]
+    }
+}
